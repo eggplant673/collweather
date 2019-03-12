@@ -1,6 +1,7 @@
 package com.example.coolweather;
 
 import android.app.ProgressDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -18,6 +19,7 @@ import android.widget.Toast;
 import com.example.coolweather.db.City;
 import com.example.coolweather.db.County;
 import com.example.coolweather.db.Province;
+import com.example.coolweather.gson.Weather;
 import com.example.coolweather.util.HttpUtil;
 import com.example.coolweather.util.Utility;
 
@@ -73,6 +75,19 @@ public class ChooseAreaFragment extends Fragment {
                 }else if(currentLevel == LEVEL_CITY){
                     selectedCity = cityList.get(position);
                     queryCounty();
+                }else if(currentLevel == LEVEL_COUNTY) {
+                    String weatherId = countyList.get(position).getWeatherid();
+                    if (getActivity() instanceof MainActivity) {
+                        Intent intent = new Intent(getActivity(), WeatherActivity.class);
+                        intent.putExtra("weather_id", weatherId);
+                        startActivity(intent);
+                        getActivity().finish();
+                    } else if(getActivity() instanceof WeatherActivity){
+                        WeatherActivity activity = (WeatherActivity)getActivity();
+                        activity.drawerLayout.closeDrawers();
+                        activity.swipeRefreshLayout.setRefreshing(true);
+                        activity.requestWeather(weatherId);
+                    }
                 }
             }
         });
@@ -102,7 +117,7 @@ public class ChooseAreaFragment extends Fragment {
             listView.setSelection(0);
             currentLevel = LEVEL_PROVINCE;
         }else {
-            String address = "http://guolin.tech/api/china";
+            String address = "http://guolin.tech/api/china/";
             queryFromServer(address,"province");
         }
     }
@@ -161,11 +176,12 @@ public class ChooseAreaFragment extends Fragment {
 
               @Override
               public void onResponse(Call call, Response response) throws IOException {
-                    String responseText = response.body().toString();
+                    String responseText = response.body().string();
                     boolean result = false;
                     if("province".equals(type))
                     {
                         result = Utility.handleProvinceResponse(responseText);
+
                     }else if("city".equals(type))
                     {
                         result = Utility.handlecityresponse(responseText,selectedProvince.getId());
